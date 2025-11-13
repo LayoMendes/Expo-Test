@@ -1,98 +1,163 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { StyleSheet, Text, View, Pressable } from 'react-native';
+import React, { useState } from 'react';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Hello</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step : Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [current, setCurrent] = useState('0');
+  const [operator, setOperator] = useState<string | null>(null);
+  const [previous, setPrevious] = useState<string | null>(null);
+  const [history, setHistory] = useState(''); // ← Histórico de entrada
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const handleNumber = (num: string) => {
+    if (current === '0') setCurrent(num);
+    else setCurrent(current + num);
+
+    setHistory(prev => prev + num); // Atualiza histórico
+  };
+
+  const handleOperator = (op: string) => {
+    setOperator(op);
+    setPrevious(current);
+    setCurrent('0');
+
+    setHistory(prev => prev + ' ' + op + ' '); // Adiciona operador no histórico
+  };
+
+  const handleEquals = () => {
+    if (!operator || !previous) return;
+
+    const prev = parseFloat(previous);
+    const curr = parseFloat(current);
+    let result = 0;
+
+    switch (operator) {
+      case '+':
+        result = prev + curr;
+        break;
+      case '-':
+        result = prev - curr;
+        break;
+      case '×':
+        result = prev * curr;
+        break;
+      case '÷':
+        result = curr !== 0 ? prev / curr : 0;
+        break;
+    }
+
+    setCurrent(result.toString());
+    setOperator(null);
+    setPrevious(null);
+    setHistory(''); // Limpa histórico após calcular
+  };
+
+  const handleClear = () => {
+    setCurrent('0');
+    setPrevious(null);
+    setOperator(null);
+    setHistory('');
+  };
+
+  // Função para renderizar botões com key única
+  const renderButton = (label: string, onPress: () => void, style?: any) => (
+    <Pressable key={label} onPress={onPress} style={[styles.button, style]}>
+      <Text style={styles.buttonText}>{label}</Text>
+    </Pressable>
+  );
+
+  return (
+    <View style={styles.container}>
+      {/* Display */}
+      <View style={styles.display}>
+        <Text style={styles.historyText}>{history}</Text>
+        <Text style={styles.displayText}>{current}</Text>
+      </View>
+
+      {/* Números e Operadores */}
+      <View style={styles.row}>
+        {['7','8','9'].map(n => renderButton(n, () => handleNumber(n)))}
+        {renderButton('÷', () => handleOperator('÷'), styles.operator)}
+      </View>
+
+      <View style={styles.row}>
+        {['4','5','6'].map(n => renderButton(n, () => handleNumber(n)))}
+        {renderButton('×', () => handleOperator('×'), styles.operator)}
+      </View>
+
+      <View style={styles.row}>
+        {['1','2','3'].map(n => renderButton(n, () => handleNumber(n)))}
+        {renderButton('-', () => handleOperator('-'), styles.operator)}
+      </View>
+
+      <View style={styles.row}>
+        {['0'].map(n => renderButton(n, () => handleNumber(n), styles.zero))}
+        {renderButton('.', () => handleNumber('.'))}
+        {renderButton('+', () => handleOperator('+'), styles.operator)}
+      </View>
+
+      <View style={styles.row}>
+        {renderButton('C', handleClear, { backgroundColor: '#8b2525ff' })}
+        {renderButton('=', handleEquals, styles.operator)}
+      </View>
+
+
+      <Text style={styles.developed}>Developed by Layo</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 0,
+    backgroundColor: '#000000ff',
+  },
+  display: {
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    backgroundColor: '#afafafff',
+    padding:10,
+    marginBottom: 20,
+    borderRadius: 8,
+  },
+  displayText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+  },
+  historyText: {
+    fontSize: 18,
+    color: '#444444ff',
+    textAlign: 'right',
+  },
+  row: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  button: {
+    flex: 1,
+    backgroundColor: '#444444ff',
+    margin: 5,
+    padding: 20,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    borderRadius: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  zero: {
+    flex: 2, 
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  operator: {
+    backgroundColor: '#b46900ff',
   },
+  buttonText: {
+    color: '#fff',
+    fontSize: 44,
+    fontWeight: 'bold',
+  },
+  developed: {
+        color: '#fff',
+        textAlign: 'right',
+
+  }
 });
